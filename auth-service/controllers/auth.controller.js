@@ -1,65 +1,59 @@
 const authService = require("../services/auth.service");
-const jwt = require("jsonwebtoken");   // <-- IMPORTANT FIX
+const jwt = require("jsonwebtoken");
 
-exports.register = async (req, res) => {
+exports.register = async (req, res, next) => {
   try {
-    res.json(await authService.registerUser(req.body));
-  } catch (e) {
-    res.status(400).json({ error: e.message });
+    const result = await authService.registerUser(req.body);
+    res.json(result);
+  } catch (err) {
+    next(err);
   }
 };
 
-exports.login = async (req, res) => {
+exports.login = async (req, res, next) => {
   try {
     const { accessToken, refreshToken } = await authService.loginUser(req.body);
 
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
       sameSite: "lax",
-      secure: false
+      secure: false,
     });
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       sameSite: "lax",
-      secure: false
+      secure: false,
     });
 
     res.json({
       message: "Login successful",
       accessToken,
-      refreshToken
+      refreshToken,
     });
-
-  } catch (e) {
-    res.status(400).json({ error: e.message });
+  } catch (err) {
+    next(err);
   }
 };
 
-exports.refresh = async (req, res) => {
+exports.refresh = async (req, res, next) => {
   try {
     const token = req.cookies.refreshToken;
-    if (!token) return res.status(401).json({ message: "No refresh token" });
+    if (!token) {
+      const error = new Error("No refresh token");
+      error.status = 401;
+      throw error;
+    }
 
     const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
-
     const { accessToken, refreshToken } = authService.generateTokens(decoded.userId);
 
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: false
-    });
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: false
-    });
+    res.cookie("accessToken", accessToken, { httpOnly: true, sameSite: "lax", secure: false });
+    res.cookie("refreshToken", refreshToken, { httpOnly: true, sameSite: "lax", secure: false });
 
-    return res.json({ accessToken, refreshToken });
-
+    res.json({ accessToken, refreshToken });
   } catch (err) {
-    console.log("Refresh error:", err.message);
-    return res.status(403).json({ message: "Invalid refresh token" });
+    err.status = 403;
+    next(err);
   }
 };
 

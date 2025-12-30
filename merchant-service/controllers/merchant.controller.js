@@ -1,10 +1,14 @@
 const Merchant = require("../models/Merchant.model");
 const { v4: uuid } = require("uuid");
 
-exports.register = async (req, res) => {
+exports.register = async (req, res, next) => {
   try {
     const { name, webhookUrl } = req.body;
-    if (!name) return res.status(400).json({ message: "Merchant name required" });
+    if (!name) {
+      const error = new Error("Merchant name required");
+      error.status = 400;
+      throw error;
+    }
 
     const merchant = await Merchant.create({
       name,
@@ -21,6 +25,6 @@ exports.register = async (req, res) => {
       webhookUrl: merchant.webhookUrl
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };

@@ -1,10 +1,10 @@
 const service = require("../services/payment.service");
 
-exports.pay = async (req, res) => {
+exports.pay = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const { amount, merchantCallback } = req.body;
-    const merchantSecret = req.merchant.secret;   // 👈 get secret from middleware
+    const merchantSecret = req.merchant.secret;
 
     const data = await service.initiatePayment({
       userId,
@@ -14,8 +14,7 @@ exports.pay = async (req, res) => {
     });
 
     res.json(data);
-  } catch (e) {
-    res.status(400).json({ error: e.message });
+  } catch (err) {
+    next(err);
   }
 };
-
