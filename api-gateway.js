@@ -33,6 +33,14 @@ app.use("/wallet", authMiddleware, require("./wallet-service").routes);
 // Payment - requires BOTH: user login + merchant validation
 app.use("/payment", authMiddleware, merchantAuth, require("./payment-service").routes);
 
+// Razorpay routes (ONLY: logged-in + merchant)
+app.use(
+  "/razorpay",
+  authMiddleware,
+  merchantAuth,
+  require("./payment-service/routes/razorpay.routes")
+);
+
 // Transaction - user can check only their own transactions
 app.use("/transaction", authMiddleware, require("./transaction-service").routes);
 
